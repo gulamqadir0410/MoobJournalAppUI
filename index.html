@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Mood Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&family=Space+Grotesk:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --mood-happy: #ffe0e9;
+        --mood-calm: #ceddbb;
+        --mood-sad: #b8d4e3;
+        --mood-angry: #ffb6b6;
+        --mood-neutral: #e8e8e8;
+        --dark: #434343;
+        --primary-light: #ffe0e9;
+        --primary-green: #ceddbb;
+      }
+
+      .font-rubik {
+        font-family: "Rubik", sans-serif;
+      }
+
+      .font-space {
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .entry-card {
+        overflow-wrap: break-word;
+        word-break: break-word;
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        will-change: transform;
+        position: relative;
+      }
+
+      .entry-card.swiping {
+        transition: none;
+      }
+
+      .entry-card.deleting {
+        animation: deleteSlide 0.4s ease-in-out forwards;
+      }
+
+      @keyframes deleteSlide {
+        0% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        50% {
+          transform: translateX(-50px) rotateZ(-2deg);
+          opacity: 0.7;
+        }
+        100% {
+          transform: translateX(-100vw) rotateZ(-5deg);
+          opacity: 0;
+          height: 0;
+          padding: 0;
+          margin: 0;
+        }
+      }
+
+      .mood-happy {
+        background-color: var(--mood-happy);
+        border-color: #ec4899;
+        color: #831843;
+      }
+      .mood-calm {
+        background-color: var(--mood-calm);
+        border-color: #059669;
+        color: #134e4a;
+      }
+      .mood-sad {
+        background-color: var(--mood-sad);
+        border-color: #0891b2;
+        color: #164e63;
+      }
+      .mood-angry {
+        background-color: var(--mood-angry);
+        border-color: #dc2626;
+        color: #7f1d1d;
+      }
+      .mood-neutral {
+        background-color: var(--mood-neutral);
+        border-color: #6b7280;
+        color: #374151;
+      }
+
+      .fab {
+        border-radius: 50%;
+        transition: all 0.1s ease;
+      }
+
+      .fab:active {
+        transform: translateY(4px);
+        box-shadow: 0 4px 0 var(--dark);
+      }
+
+      .modal {
+        animation: slideUp 0.3s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .mood-selector {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .mood-btn {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        border: 3px solid var(--dark);
+        transition: all 0.1s ease;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      .mood-btn:active {
+        transform: scale(0.95);
+      }
+
+      .mood-btn.selected {
+        box-shadow: 0 0 0 3px var(--dark);
+      }
+
+      .dynamic-text {
+        transition: font-size 0.2s ease;
+      }
+
+      .brutalist-input {
+        border: 3px solid var(--dark);
+        outline: none;
+        background: white;
+      }
+
+      .brutalist-input:focus {
+        box-shadow: 0 0 0 3px var(--dark);
+      }
+
+      .mood-tag {
+        animation: tagPulse 2s infinite;
+      }
+
+      @keyframes tagPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
+      .delete-indicator {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #dc2626;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .entry-card.swiping .delete-indicator {
+        opacity: 1;
+      }
+
+      @media (max-width: 400px) {
+        body {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen pb-20 bg-[#EFEDE9]">
+    <!-- Header -->
+    <header
+      class="sticky top-0 z-40 p-5 border-b-[2.5px] border-black flex justify-between items-center bg-gradient-to-r from-purple-200 via-green-200 to-pink-50"
+    >
+      <h1 class="text-2xl font-[725] tracking-tighter font-space">moob</h1>
+      <svg width="35px" height="35px" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 7.35304L21 16.647C21 16.8649 20.8819 17.0656 20.6914 17.1715L12.2914 21.8381C12.1102 21.9388 11.8898 21.9388 11.7086 21.8381L3.30861 17.1715C3.11814 17.0656 3 16.8649 3 16.647L2.99998 7.35304C2.99998 7.13514 3.11812 6.93437 3.3086 6.82855L11.7086 2.16188C11.8898 2.06121 12.1102 2.06121 12.2914 2.16188L20.6914 6.82855C20.8818 6.93437 21 7.13514 21 7.35304Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M3.52844 7.29357L11.7086 11.8381C11.8898 11.9388 12.1102 11.9388 12.2914 11.8381L20.5 7.27777" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M12 21L12 12" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M11.6914 11.8285L3.89139 7.49521C3.49147 7.27304 3 7.56222 3 8.01971V16.647C3 16.8649 3.11813 17.0656 3.30861 17.1715L11.1086 21.5048C11.5085 21.727 12 21.4378 12 20.9803V12.353C12 12.1351 11.8819 11.9344 11.6914 11.8285Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linejoin="round"></path>
+      </svg>
+      <h1 class="text-[17px] font-[700] font-rubik text-gray-600">Hi Mark.</h1>
+    </header>
+
+    <!-- Entries Container -->
+    <main id="entriesContainer" class="p-4 space-y-4 max-w-md mx-auto">
+      <!-- Entries will be dynamically inserted here -->
+    </main>
+
+    <!-- Floating Action Button -->
+    <button
+      id="fab"
+      class="fab fixed bottom-6 right-6 w-16 h-16 bg-[#911051] border-2 border-black flex items-center justify-center text-3xl font-black z-50"
+    >
+      <i class="ri-add-fill text-white"></i>
+    </button>
+
+    <!-- Modal -->
+    <div
+      id="modal"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-end"
+    >
+      <div
+        class="modal bg-white w-full max-w-md mx-auto border-4 border-[#434343] border-b-0"
+      >
+        <div class="p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-3xl font-[700] font-space font-black uppercase underline decoration-4 underline-offset-5 decoration-pink-600">NEW ENTRY</h2>
+            <button id="closeModal" class="text-2xl font-black">×</button>
+          </div>
+
+          <hr>
+          <!-- Mood Selector -->
+          <p class="font-black font-space">Select Mood</p>
+          <div class="mood-selector">
+            <button
+              class="mood-btn mood-happy"
+              data-mood="happy"
+              data-emoji='<i class="text-pink-700 ri-emotion-fill text-2xl"></i>'
+              data-bg-color="#ffe0e9"
+              data-border-color="#ec4899"
+              data-text-color="#831843"
+            >
+              <i class="text-pink-700 ri-emotion-fill text-4xl"></i>
+            </button>
+            <button 
+              class="mood-btn mood-calm" 
+              data-mood="calm" 
+              data-emoji='<i class="text-teal-700 ri-emotion-happy-fill text-2xl"></i>'
+              data-bg-color="#ceddbb"
+              data-border-color="#059669"
+              data-text-color="#134e4a"
+            >
+              <i class="text-teal-700 ri-emotion-happy-fill text-4xl"></i>
+            </button>
+            <button 
+              class="mood-btn mood-sad" 
+              data-mood="sad" 
+              data-emoji='<i class="text-cyan-700 ri-emotion-sad-fill text-2xl"></i>'
+              data-bg-color="#b8d4e3"
+              data-border-color="#0891b2"
+              data-text-color="#164e63"
+            >
+              <i class="text-cyan-700 ri-emotion-sad-fill text-4xl"></i>
+            </button>
+            <button
+              class="mood-btn mood-angry"
+              data-mood="angry"
+              data-emoji='<i class="text-red-700 ri-emotion-unhappy-fill text-2xl"></i>'
+              data-bg-color="#ffb6b6"
+              data-border-color="#dc2626"
+              data-text-color="#7f1d1d"
+            >
+              <i class="text-red-700 ri-emotion-unhappy-fill text-4xl"></i>
+            </button>
+            <button
+              class="mood-btn mood-neutral"
+              data-mood="neutral"
+              data-emoji='<i class="text-gray-700 ri-emotion-normal-fill text-2xl"></i>'
+              data-bg-color="#e8e8e8"
+              data-border-color="#6b7280"
+              data-text-color="#374151"
+            >
+              <i class="text-gray-700 ri-emotion-normal-fill text-4xl"></i>
+            </button>
+          </div>
+
+          <hr>
+
+          <!-- Title Input -->
+          <p class="font-black font-space">Title</p>
+          <input
+            id="titleInput"
+            type="text"
+            placeholder="TITLE"
+            class="brutalist-input w-full p-3 text-lg font-space font-bold uppercase"
+          />
+
+          <!-- Content Textarea -->
+          <p class="font-black font-space">Content</p>
+          <textarea
+            id="contentInput"
+            placeholder="WRITE YOUR THOUGHTS..."
+            class="brutalist-input w-full p-3 min-h-[150px] resize-none font-rubik"
+            rows="5"
+          ></textarea>
+
+          <!-- Save Button -->
+          <button
+            id="saveEntry"
+            class="w-full bg-[#911051] font-space text-white p-4 border-4 border-black font-black uppercase text-lg"
+          >
+            SAVE ENTRY
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // State management
+      let entries = JSON.parse(localStorage.getItem("journalEntries")) || [];
+      let selectedMood = null;
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let currentCard = null;
+      let isHorizontalSwipe = false;
+
+      // DOM elements
+      const entriesContainer = document.getElementById("entriesContainer");
+      const fab = document.getElementById("fab");
+      const modal = document.getElementById("modal");
+      const closeModalBtn = document.getElementById("closeModal");
+      const titleInput = document.getElementById("titleInput");
+      const contentInput = document.getElementById("contentInput");
+      const saveEntryBtn = document.getElementById("saveEntry");
+      const moodButtons = document.querySelectorAll(".mood-btn");
+
+      // Initialize
+      renderEntries();
+
+      // Event Listeners
+      fab.addEventListener("click", openModal);
+      closeModalBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+      saveEntryBtn.addEventListener("click", saveEntry);
+
+      moodButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          moodButtons.forEach((b) => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          selectedMood = {
+            mood: btn.dataset.mood,
+            emoji: btn.dataset.emoji,
+            bgColor: btn.dataset.bgColor,
+            borderColor: btn.dataset.borderColor,
+            textColor: btn.dataset.textColor
+          };
+        });
+      });
+
+      // Enhanced touch gesture handling
+      function handleTouchStart(e, card) {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        currentCard = card;
+        isHorizontalSwipe = false;
+        card.classList.add("swiping");
+      }
+
+      function handleTouchMove(e, card) {
+        if (!touchStartX || !currentCard) return;
+
+        const touch = e.touches[0];
+        const diffX = touch.clientX - touchStartX;
+        const diffY = touch.clientY - touchStartY;
+
+        // Determine if this is a horizontal swipe
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+          isHorizontalSwipe = true;
+          e.preventDefault(); // Prevent scrolling
+        }
+
+        if (isHorizontalSwipe && diffX < 0) {
+          const translateX = Math.max(diffX, -200);
+          const opacity = Math.max(1 + diffX / 200, 0.3);
+          
+          card.style.transform = `translateX(${translateX}px)`;
+          card.style.opacity = opacity;
+          
+          // Show delete indicator when swiping
+          card.classList.add("swiping");
+        }
+      }
+
+      function handleTouchEnd(e, card, entryId) {
+        if (!touchStartX || !currentCard) return;
+
+        const touch = e.changedTouches[0];
+        const diffX = touchStartX - touch.clientX;
+
+        if (isHorizontalSwipe && diffX > 100) {
+          // Start cool delete animation
+          card.classList.remove("swiping");
+          card.classList.add("deleting");
+          
+          // Add some visual feedback
+          card.style.transform = "translateX(-50px) rotateZ(-2deg)";
+          
+          setTimeout(() => {
+            deleteEntry(entryId);
+          }, 400);
+        } else {
+          // Snap back with smooth animation
+          card.classList.remove("swiping");
+          card.style.transition = "transform 0.3s ease-out, opacity 0.3s ease-out";
+          card.style.transform = "translateX(0)";
+          card.style.opacity = "1";
+          
+          setTimeout(() => {
+            card.style.transition = "";
+          }, 300);
+        }
+
+        // Reset touch state
+        touchStartX = 0;
+        touchStartY = 0;
+        currentCard = null;
+        isHorizontalSwipe = false;
+      }
+
+      // Modal functions
+      function openModal() {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        selectedMood = null;
+        titleInput.value = "";
+        contentInput.value = "";
+        moodButtons.forEach((b) => b.classList.remove("selected"));
+      }
+
+      function closeModal() {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      // Entry management
+      function saveEntry() {
+        if (
+          !selectedMood ||
+          !titleInput.value.trim() ||
+          !contentInput.value.trim()
+        ) {
+          alert("Please fill all fields and select a mood");
+          return;
+        }
+
+        const entry = {
+          id: Date.now(),
+          title: titleInput.value.trim(),
+          content: contentInput.value.trim(),
+          mood: selectedMood.mood,
+          emoji: selectedMood.emoji,
+          bgColor: selectedMood.bgColor,
+          borderColor: selectedMood.borderColor,
+          textColor: selectedMood.textColor,
+          timestamp: new Date().toISOString(),
+        };
+
+        entries.unshift(entry);
+        localStorage.setItem("journalEntries", JSON.stringify(entries));
+        renderEntries();
+        closeModal();
+      }
+
+      function deleteEntry(id) {
+        entries = entries.filter((entry) => entry.id !== id);
+        localStorage.setItem("journalEntries", JSON.stringify(entries));
+        renderEntries();
+      }
+
+      function calculateFontSize(textLength) {
+        if (textLength < 50) return "text-base";
+        if (textLength < 150) return "text-sm";
+        return "text-xs";
+      }
+
+      function renderEntries() {
+        if (entries.length === 0) {
+          entriesContainer.innerHTML = `
+            <div class="text-center py-20">
+              <p class="text-3xl font-bold uppercase font-space">No entries yet!</p>
+              <lord-icon
+                src="https://cdn.lordicon.com/vwzukuhn.json"
+                trigger="loop"
+                stroke="bold"
+                delay="3500"
+                colors="primary:#911051,secondary:#16a9c7,tertiary:#66eece,quaternary:#e4e4e4"
+                style="width:250px;height:250px">
+              </lord-icon>
+              <p class="mt-2 font-rubik text-lg">Tap + to create your first entry</p>
+            </div>
+          `;
+          return;
+        }
+
+        const allEntriesHeading = `
+          <div class="mb-6">
+            <h2 class="text-2xl font-[725] uppercase font-space text-gray-700 tracking-tight">All Entries</h2>
+          </div>
+        `;
+
+        const entriesHTML = entries
+          .map((entry) => {
+            const fontSize = calculateFontSize(entry.content.length);
+            const date = new Date(entry.timestamp).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+
+            return `
+              <div class="entry-card mood-${entry.mood} rounded-sm p-4 border-4 relative" 
+                   data-id="${entry.id}"
+                   style="background-color: ${entry.bgColor}; border-color: ${entry.borderColor}; color: ${entry.textColor};">
+                <div class="flex justify-between items-start mb-3">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span 
+                        class="mood-tag inline-block px-3 py-1 rounded-full text-xs font-black uppercase border-2 font-space"
+                        style="background-color: ${entry.borderColor}; border-color: ${entry.textColor}; color: white;"
+                      >
+                        ${entry.mood}
+                      </span>
+                    </div>
+                    <h3 class="font-bold text-lg uppercase font-space" style="color: ${entry.textColor};">
+                      ${entry.title}
+                    </h3>
+                    <p class="text-xs font-space font-bold mt-1" style="color: ${entry.textColor};">
+                      ${date}
+                    </p>
+                  </div>
+                  <span class="text-2xl ml-2">${entry.emoji}</span>
+                </div>
+                <p class="dynamic-text ${fontSize} font-rubik leading-relaxed break-words whitespace-pre-wrap"
+                   style="color: ${entry.textColor};">
+                  ${entry.content}
+                </p>
+                <div class="delete-indicator">
+                  <i class="ri-delete-bin-fill"></i> DELETE
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        entriesContainer.innerHTML = allEntriesHeading + entriesHTML;
+
+        // Attach touch events to cards
+        document.querySelectorAll(".entry-card").forEach((card) => {
+          const entryId = parseInt(card.dataset.id);
+
+          card.addEventListener(
+            "touchstart",
+            (e) => handleTouchStart(e, card),
+            { passive: false }
+          );
+          card.addEventListener(
+            "touchmove", 
+            (e) => handleTouchMove(e, card), 
+            { passive: false }
+          );
+          card.addEventListener(
+            "touchend",
+            (e) => handleTouchEnd(e, card, entryId),
+            { passive: false }
+          );
+        });
+      }
+
+      // Prevent default touch behavior for better swipe detection
+      document.addEventListener("touchstart", function(e) {
+        if (e.target.closest('.entry-card')) {
+          // Allow touch to start
+        }
+      }, { passive: false });
+
+      document.addEventListener("touchmove", function(e) {
+        if (currentCard && isHorizontalSwipe) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    </script>
+  </body>
+</html>
